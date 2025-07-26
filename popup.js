@@ -155,30 +155,129 @@ function createBookmarks(bookmarks, parentId) {
 
 // 删除所有书签（保留根节点）
 function removeAllBookmarks() {
-    return new Promise((resolve, reject) => {
-        chrome.bookmarks.getTree((tree) => {
-            if (chrome.runtime.lastError) {
-                return reject(new Error(`删除书签失败: ${chrome.runtime.lastError.message}`));
-            }
-            
-            if (!tree || !tree[0] || !tree[0].children) {
-                return resolve();
-            }
-
-            // 获取所有根节点的子节点（排除根节点本身）
-            const rootChildren = tree[0].children;
-            const deletePromises = rootChildren.map(node => 
-                new Promise((res) => {
-                    chrome.bookmarks.removeTree(node.id, () => {
-                        // 忽略单个节点删除的错误，继续删除其他节点
-                        res();
-                    });
-                })
-            );
-
-            Promise.all(deletePromises).then(resolve).catch(resolve);
-        });
+    // 获取书签栏目录ID（关键：不同浏览器可能有不同默认名称）
+async function getBookmarkBarId() {
+  return new Promise(resolve => {
+    // 搜索书签栏（Chrome叫"书签栏"，Firefox叫"书签工具栏"）
+    chrome.bookmarks.search({ title: "书签栏" }, (barResults) => {
+      if (barResults.length > 0) {
+        resolve(barResults[0].id);
+        return;
+      }
+      // 兼容Firefox
+      chrome.bookmarks.search({ title: "书签工具栏" }, (firefoxBar) => {
+        resolve(firefoxBar.length > 0 ? firefoxBar[0].id : null);
+      });
     });
+  });
+}
+
+// 只删除书签栏下的所有内容（保留书签栏本身）
+async function removeAllBookmarks() {
+  const bookmarkBarId = await getBookmarkBarId();
+  if (!bookmarkBarId) {
+    throw new Error("未找到书签栏目录");
+  }
+
+  // 获取书签栏下的所有子项
+  return new Promise(resolve => {
+    chrome.bookmarks.getChildren(bookmarkBarId, (children) => {
+      if (children.length === 0) {
+        resolve();
+        return;
+      }
+
+      // 逐个删除子项（文件夹用removeTree，单个书签用remove）
+      const deletePromises = children.map(child => {
+        return new Promise(resolveDelete => {
+          if (child.children) { // 文件夹
+            chrome.bookmarks.removeTree(child.id, () => {
+              if (chrome.runtime.lastError) {
+                console.warn("删除文件夹失败:", child.title, chrome.runtime.lastError);
+              }
+              resolveDelete();
+            });
+          } else { // 单个书签
+            chrome.bookmarks.remove(child.id, () => {
+              if (chrome.runtime.lastError) {
+                console.warn("删除书签失败:", child.title, chrome.runtime.lastError);
+              }
+              resolveDelete();
+            });
+          }
+        });
+      });
+
+      Promise.all(deletePromises).then(resolve);
+    });
+  });
+}
+
+// 导入书签到书签栏
+async function createBookmarks(bookmarks, parentId) {
+  for (const bookmark of bookmarks) {
+    const bookmarkData = {
+      parentId: parentId,
+      title: bookmark.title
+    };
+
+    if (bookmark.url) { // 单个书签
+      bookmarkData.url = bookmark.url;
+      await new Promise(resolve => {
+        chrome.bookmarks.create(bookmarkData, (newBookmark) => {
+          if (chrome.runtime.lastError) {
+            console.error("创建书签失败:", bookmark.title, chrome.runtime.lastError);
+          }
+          resolve();
+        });
+      });
+    } else if (bookmark.children) { // 文件夹
+      await new Promise(resolve => {
+        chrome.bookmarks.create(bookmarkData, (newFolder) => {
+          if (chrome.runtime.lastError) {
+            console.error("创建文件夹失败:", bookmark.title, chrome.runtime.lastError);
+            resolve();
+            return;
+          }
+          // 递归创建子项
+          createBookmarks(bookmark.children, newFolder.id).then(resolve);
+        });
+      });
+    }
+  }
+}
+
+// 完整的下载并导入流程
+async function downloadBookmarks() {
+    try {
+    setButtonLoading(true);
+    statusText.textContent = "正在删除现有书签...";
+    
+    // 1. 先删除书签栏所有内容
+    await removeAllBookmarks();
+    
+    statusText.textContent = "正在下载书签...";
+    // 2. 从GitHub下载书签数据
+    const bookmarks = await downloadFromGitHub();
+    
+    statusText.textContent = "正在导入书签...";
+    // 3. 获取书签栏ID作为父目录
+    const bookmarkBarId = await getBookmarkBarId();
+    if (!bookmarkBarId) {
+        throw new Error("无法获取书签栏目录");
+    }
+    
+    // 4. 导入书签到书签栏
+    await createBookmarks(bookmarks, bookmarkBarId);
+    
+    statusText.textContent = "导入成功！";
+} catch (err) {
+    console.error("下载失败:", err);
+    statusText.textContent = `失败: ${err.message}`;
+} finally {
+    setButtonLoading(false);
+}
+}
 }
 
 // 获取认证Token
