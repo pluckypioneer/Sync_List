@@ -49,8 +49,8 @@ class SecurityManager {
 // 初始化API配置
 async function initApiConfig() {
     try {
-        const result = await chrome.storage.sync.get(['apiBase', 'authToken']);
-        apiUrl = result.apiBase || '';
+        const result = await chrome.storage.sync.get(['apiUrl', 'authToken']);
+        apiUrl = result.apiUrl || '';
         
         if (result.authToken) {
             // 解码存储的Token
@@ -59,23 +59,19 @@ async function initApiConfig() {
             authToken = '';
         }
         
-        if (!apiUrl || !authToken) {
-            showMessage('请先在设置页面配置API地址和认证Token', 'error');
-            return false;
-        }
-        
         // 检查Token是否过期
-        const tokenValid = await SecurityManager.checkTokenExpiry();
-        if (!tokenValid) {
-            showMessage('认证Token已过期，请重新配置', 'error');
-            return false;
+        if (authToken) {
+            const isExpired = await SecurityManager.checkTokenExpiry();
+            if (isExpired) {
+                authToken = '';
+                showMessage('认证Token已过期，请重新设置', 'warning');
+            }
         }
         
-        return true;
+        // 更新连接状态
+        await checkConnectionStatus();
     } catch (error) {
         console.error('初始化API配置失败:', error);
-        showMessage('初始化失败: ' + error.message, 'error');
-        return false;
     }
 }
 
@@ -236,8 +232,8 @@ async function loadLastSyncInfo() {
 // 初始化：从存储中加载API配置
 async function init() {
     try {
-        const { apiBase } = await chrome.storage.sync.get('apiBase');
-        API_BASE = apiBase;
+        const { apiUrl } = await chrome.storage.sync.get('apiUrl');
+        API_BASE = apiUrl;
         
         // 绑定事件
         document.getElementById('uploadBtn').addEventListener('click', uploadBookmarks);

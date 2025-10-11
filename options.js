@@ -11,9 +11,9 @@ function base64Decode(str) {
 // 加载已保存的设置
 async function loadSettings() {
     try {
-        const result = await chrome.storage.sync.get(['apiBase', 'authToken', 'encryptionPassword']);
-        if (result.apiBase) {
-            document.getElementById('apiBase').value = result.apiBase;
+        const result = await chrome.storage.sync.get(['apiUrl', 'authToken', 'encryptionPassword']);
+        if (result.apiUrl) {
+            document.getElementById('apiUrl').value = result.apiUrl;
         }
         if (result.authToken) {
             document.getElementById('authToken').value = base64Decode(result.authToken);
@@ -34,18 +34,18 @@ async function saveSettings() {
     saveBtn.textContent = '保存中...';
     
     try {
-        const apiBase = document.getElementById('apiBase').value.trim();
+        const apiUrl = document.getElementById('apiUrl').value.trim();
         const authToken = document.getElementById('authToken').value.trim();
         const encryptionPassword = document.getElementById('encryptionPassword').value.trim();
         
-        if (!apiBase || !authToken) {
+        if (!apiUrl || !authToken) {
             showMessage('请填写完整的API地址和认证Token', 'error');
             return;
         }
         
         // 对敏感数据进行base64编码存储
         const settings = {
-            apiBase: apiBase,
+            apiUrl: apiUrl,
             authToken: base64Encode(authToken)
         };
         
@@ -95,43 +95,38 @@ function showMessage(text, type) {
 
 // 测试连接功能
 async function testConnection() {
-    const saveBtn = document.getElementById('saveBtn');
     const testBtn = document.getElementById('testBtn');
-    const apiBase = document.getElementById('apiBase').value.trim();
-    const authToken = document.getElementById('authToken').value.trim();
-    
-    if (!apiBase || !authToken) {
-        showMessage('请先填写API地址和认证Token', 'error');
-        return;
-    }
+    testBtn.disabled = true;
+    testBtn.textContent = '测试中...';
     
     try {
-        // 禁用按钮
-        testBtn.disabled = true;
-        testBtn.textContent = '🔄 测试中...';
+        const apiUrl = document.getElementById('apiUrl').value.trim();
+        const authToken = document.getElementById('authToken').value.trim();
         
-        showMessage('正在测试连接...', 'info');
+        if (!apiUrl || !authToken) {
+            showMessage('请先填写API地址和认证Token', 'error');
+            return;
+        }
         
         // 测试连接
-        const response = await fetch(`${apiBase}/download`, {
+        const response = await fetch(`${apiUrl}/download`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${authToken}`
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
             }
         });
         
         if (response.ok) {
-            showMessage('✅ 连接测试成功！API配置正确', 'success');
+            showMessage('连接测试成功！', 'success');
         } else {
-            const errorText = await response.text().catch(() => '未知错误');
-            showMessage(`❌ 连接测试失败: ${response.status} ${errorText}`, 'error');
+            const errorText = await response.text();
+            showMessage(`连接测试失败: ${response.status} ${errorText}`, 'error');
         }
-        
     } catch (error) {
-        console.error('测试连接失败:', error);
-        showMessage(`❌ 连接测试失败: ${error.message}`, 'error');
+        console.error('连接测试失败:', error);
+        showMessage('连接测试失败: ' + error.message, 'error');
     } finally {
-        // 恢复按钮
         testBtn.disabled = false;
         testBtn.textContent = '🔗 测试连接';
     }
