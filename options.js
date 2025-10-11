@@ -112,7 +112,7 @@ async function testConnection() {
         const response = await fetch(`${apiUrl}/download`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${authToken}`,
+                'X-Auth-Token': authToken,
                 'Content-Type': 'application/json'
             }
         });
