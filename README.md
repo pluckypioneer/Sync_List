@@ -237,6 +237,6 @@ A: 点击插件界面中的"查看日志"按钮，可以查看详细的操作记
 打赏链接：
 > USDT Address：` 0x2aa1308a4ce8671870ff5984c0b9b5fbf56b597e `
 
-<img src="https://health.john-life.sbs/images/eth.jpg =400×400" alt="图片alt" title="OKX打赏">
+<img src="https://health.john-life.sbs/images/eth.jpg" alt="图片alt" title="OKX打赏">
 
 
