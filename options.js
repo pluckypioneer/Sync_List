@@ -108,8 +108,9 @@ async function testConnection() {
             return;
         }
         
-        // 测试连接
-        const response = await fetch(`${apiUrl}/download`, {
+        // 测试连接 - 确保URL格式正确
+        const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+        const response = await fetch(`${baseUrl}/download`, {
             method: 'GET',
             headers: {
                 'X-Auth-Token': authToken,

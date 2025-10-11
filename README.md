@@ -106,6 +106,8 @@ Many users find it inconvenient to manually sync bookmarks across multiple brows
 - 使用 "上传书签" 按钮将本地书签同步到 GitHub
 - 使用 "下载书签" 按钮将 GitHub 上的书签同步到本地（会覆盖本地书签）
 
+> 注意：1. 下载书签会覆盖本地所有书签，请谨慎操作；2.下载书签会导入到浏览器名为“书签栏”书签文件件内，请自行查看调整书签布局。
+
 ### 备份管理
 - 点击 "创建备份" 生成本地备份文件（支持加密）
 - 点击 "恢复备份" 从本地备份文件恢复书签
@@ -152,7 +154,7 @@ A: 首先使用"测试连接"功能检查配置，然后查看"日志"获取详�
 
 ### Q: 如何获取 GitHub 个人访问令牌？
 
-A: 访问 [GitHub 令牌设置页面](https://github.com/settings/tokens)，点击 "Generate new token"，勾选 `repo` 权限，生成令牌并妥善保存。
+A: 访问 [GitHub 令牌设置页面](https://github.com/settings/tokens)，点击 "Generate new token"，勾选 `repo` 权限，生成令牌并妥善保存。注意确保生成的令牌有'Contents'的读写权限。如有不懂请自行查问ai或有关资料。
 
 ### Q: 可以在多台设备上使用吗？
 

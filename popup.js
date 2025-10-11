@@ -6,10 +6,11 @@ let authToken = '';
 class SecurityManager {
     static async validateToken(apiUrl, token) {
         try {
-            const response = await fetch(`${apiUrl}/validate`, {
+            const baseUrl = apiUrl && apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+            const response = await fetch(`${baseUrl}/validate`, {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    'X-Auth-Token': token,
                     'Content-Type': 'application/json'
                 },
                 timeout: 10000
@@ -233,7 +234,8 @@ async function loadLastSyncInfo() {
 async function init() {
     try {
         const { apiUrl } = await chrome.storage.sync.get('apiUrl');
-        API_BASE = apiUrl;
+        // 确保API_BASE不以斜杠结尾，避免URL拼接时出现双斜杠
+        API_BASE = apiUrl && apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
         
         // 绑定事件
         document.getElementById('uploadBtn').addEventListener('click', uploadBookmarks);
@@ -365,7 +367,8 @@ function openSettings() {
 async function getAuthToken() {
     try {
         const { authToken } = await chrome.storage.sync.get('authToken');
-        return authToken || '';
+        // Token在存储时进行了Base64编码，读取时需要解码
+        return authToken ? base64Decode(authToken) : '';
     } catch (err) {
         console.error('获取认证Token失败:', err);
         return '';
