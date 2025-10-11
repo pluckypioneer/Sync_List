@@ -227,7 +227,14 @@ A: 点击插件界面中的"查看日志"按钮，可以查看详细的操作记
 如有问题或建议，欢迎：
 - 提交 [GitHub Issue](https://github.com/pluckypioneer/Sync_List/issues)
 - 发起 [Pull Request](https://github.com/pluckypioneer/Sync_List/pulls)
+- 邮箱: syncbookmark@john-life.sbs
 
 ---
 
 ⭐ 如果这个项目对你有帮助，请给个 Star 支持一下！
+
+---
+打赏链接：
+> USDT Address：` 0x2aa1308a4ce8671870ff5984c0b9b5fbf56b597e `
+
+
