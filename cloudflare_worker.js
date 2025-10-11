@@ -126,27 +126,31 @@ function validateRequest(request, authToken) {
 
 // 处理CORS
 function handleCors(request) {
-    // 替换为实际插件ID（在浏览器插件管理页可查看）
-    const allowedOrigins = [
-        'chrome-extension://abcdef1234567890abcdef',
-        'moz-extension://abcdef1234567890abcdef'
-    ];
-    
     const origin = request.headers.get('Origin') || '';
-    const isAllowedOrigin = allowedOrigins.some(allowed => origin === allowed);
+    
+    // 检查是否为浏览器扩展请求
+    const isExtensionOrigin = origin.startsWith('chrome-extension://') || 
+                             origin.startsWith('moz-extension://') ||
+                             origin.startsWith('safari-web-extension://');
 
     const headers = {
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token',
-        'Access-Control-Max-Age': '86400'
+        'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token, Authorization',
+        'Access-Control-Max-Age': '86400',
+        'Content-Type': 'application/json'
     };
 
-    if (isAllowedOrigin) {
+    // 允许所有浏览器扩展访问
+    if (isExtensionOrigin) {
         headers['Access-Control-Allow-Origin'] = origin;
+        headers['Access-Control-Allow-Credentials'] = 'true';
     }
 
     if (request.method === 'OPTIONS') {
-        return new Response(null, { headers });
+        return new Response(null, { 
+            status: 200,
+            headers 
+        });
     }
 
     return headers;
@@ -165,15 +169,41 @@ export default {
         const missingEnvVars = requiredEnvVars.filter(varName => !env[varName]);
         
         if (missingEnvVars.length > 0) {
+            console.error('缺少环境变量:', missingEnvVars);
             return new Response(
-                `服务器配置错误：缺少环境变量 ${missingEnvVars.join(', ')}`, 
-                { status: 500, headers: corsHeaders }
+                JSON.stringify({
+                    error: 'SERVER_CONFIG_ERROR',
+                    message: '服务器配置错误：缺少必要的环境变量',
+                    details: `缺少: ${missingEnvVars.join(', ')}`,
+                    timestamp: new Date().toISOString()
+                }), 
+                { 
+                    status: 500, 
+                    headers: {
+                        ...corsHeaders,
+                        'Content-Type': 'application/json'
+                    }
+                }
             );
         }
 
         // 验证身份
         if (!validateRequest(request, env.AUTH_TOKEN)) {
-            return new Response('未授权访问：请检查认证Token', { status: 401, headers: corsHeaders });
+            console.warn('未授权访问尝试:', request.headers.get('X-Auth-Token'));
+            return new Response(
+                JSON.stringify({
+                    error: 'UNAUTHORIZED',
+                    message: '未授权访问：请检查认证Token是否正确',
+                    timestamp: new Date().toISOString()
+                }), 
+                { 
+                    status: 401, 
+                    headers: {
+                        ...corsHeaders,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
         }
 
         const url = new URL(request.url);
@@ -181,19 +211,66 @@ export default {
         try {
             // 处理上传
             if (url.pathname === '/upload' && request.method === 'POST') {
-                const content = await request.json().catch((err) => {
-                    throw new Error(`请求数据格式错误：${err.message}`);
-                });
+                let content;
+                try {
+                    content = await request.json();
+                } catch (err) {
+                    console.error('JSON解析失败:', err);
+                    return new Response(
+                        JSON.stringify({
+                            error: 'INVALID_JSON',
+                            message: '请求数据格式错误：无法解析JSON',
+                            details: err.message,
+                            timestamp: new Date().toISOString()
+                        }),
+                        { 
+                            status: 400, 
+                            headers: {
+                                ...corsHeaders,
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
+                }
 
                 // 验证数据格式
                 if (!content || !content.bookmarks || !content.updatedAt) {
-                    throw new Error('上传数据格式不正确：缺少bookmarks或updatedAt字段');
+                    return new Response(
+                        JSON.stringify({
+                            error: 'INVALID_DATA_FORMAT',
+                            message: '上传数据格式不正确',
+                            details: '缺少必要字段：bookmarks 或 updatedAt',
+                            timestamp: new Date().toISOString()
+                        }),
+                        { 
+                            status: 400, 
+                            headers: {
+                                ...corsHeaders,
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
                 }
 
                 // 限制数据大小
                 const contentStr = JSON.stringify(content);
+                const sizeInMB = (contentStr.length / (1024 * 1024)).toFixed(2);
                 if (contentStr.length > 10 * 1024 * 1024) {
-                    throw new Error('上传失败：数据超过10MB限制');
+                    return new Response(
+                        JSON.stringify({
+                            error: 'DATA_TOO_LARGE',
+                            message: '上传失败：数据超过大小限制',
+                            details: `当前大小: ${sizeInMB}MB，限制: 10MB`,
+                            timestamp: new Date().toISOString()
+                        }),
+                        { 
+                            status: 413, 
+                            headers: {
+                                ...corsHeaders,
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
                 }
 
                 // 使用正确的编码函数
@@ -215,7 +292,20 @@ export default {
                     sha
                 );
 
-                return new Response('上传成功', { headers: corsHeaders });
+                return new Response(
+                    JSON.stringify({
+                        success: true,
+                        message: '书签上传成功',
+                        size: `${sizeInMB}MB`,
+                        timestamp: new Date().toISOString()
+                    }), 
+                    { 
+                        headers: {
+                            ...corsHeaders,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
             }
 
             // 处理下载
@@ -235,16 +325,54 @@ export default {
                 });
             }
 
-            return new Response('未找到请求的资源', { 
-                status: 404, 
-                headers: corsHeaders 
-            });
+            return new Response(
+                JSON.stringify({
+                    error: 'NOT_FOUND',
+                    message: '未找到请求的资源',
+                    details: `路径 ${url.pathname} 不存在`,
+                    timestamp: new Date().toISOString()
+                }), 
+                { 
+                    status: 404, 
+                    headers: {
+                        ...corsHeaders,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
         } catch (err) {
             console.error('处理请求时出错:', err);
-            return new Response(err.message, { 
-                status: 500, 
-                headers: corsHeaders 
-            });
+            
+            // 根据错误类型返回不同的状态码
+            let statusCode = 500;
+            let errorCode = 'INTERNAL_ERROR';
+            
+            if (err.message.includes('GitHub')) {
+                statusCode = 502;
+                errorCode = 'GITHUB_API_ERROR';
+            } else if (err.message.includes('超时') || err.message.includes('timeout')) {
+                statusCode = 504;
+                errorCode = 'TIMEOUT_ERROR';
+            } else if (err.message.includes('网络') || err.message.includes('network')) {
+                statusCode = 503;
+                errorCode = 'NETWORK_ERROR';
+            }
+            
+            return new Response(
+                JSON.stringify({
+                    error: errorCode,
+                    message: '处理请求时发生错误',
+                    details: err.message,
+                    timestamp: new Date().toISOString()
+                }), 
+                { 
+                    status: statusCode, 
+                    headers: {
+                        ...corsHeaders,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
         }
     }
 };

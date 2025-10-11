@@ -5,68 +5,194 @@
 </head>
     <style>
         body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
             padding: 20px;
-            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .header .subtitle {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-top: 8px;
         }
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 25px;
         }
         label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: 14px;
         }
-        input {
+        input[type="text"], input[type="password"] {
             width: 100%;
-            padding: 8px;
+            padding: 12px 16px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 14px;
             box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            transition: all 0.3s ease;
+            background-color: #fafafa;
+        }
+        input[type="text"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #3498db;
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
         }
         button {
-            padding: 10px 15px;
-            background-color: #4CAF50;
-            color: white;
+            flex: 1;
+            padding: 12px 24px;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
         }
-        button:hover {
-            background-color: #45a049;
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+        }
+        .btn-secondary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
         }
         .message {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 4px;
+            margin-top: 20px;
+            padding: 12px 16px;
+            border-radius: 8px;
             display: none;
+            font-size: 14px;
+            line-height: 1.4;
         }
         .success {
-            background-color: #dff0d8;
-            color: #3c763d;
-            display: block;
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
         }
         .error {
-            background-color: #f2dede;
-            color: #a94442;
-            display: block;
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .help-text {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+        .help-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        .help-section h3 {
+            margin: 0 0 12px 0;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        .help-section p {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            color: #5a6c7d;
+            line-height: 1.5;
+        }
+        .help-section code {
+            background-color: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
         }
     </style>
 </head>
 <body>
-    <h2>书签同步设置</h2>
-    
-    <div class="form-group">
-        <label for="apiBase">Cloudflare Worker API地址</label>
-        <input type="url" id="apiBase" placeholder="例如: https://your-worker.example.workers.dev">
+    <div class="container">
+        <div class="header">
+            <h1>⚙️ GitHub书签同步设置</h1>
+            <div class="subtitle">配置您的Cloudflare Worker API和认证信息</div>
+        </div>
+        
+        <form id="settingsForm">
+            <div class="form-group">
+                <label for="apiUrl">🌐 Cloudflare Worker API地址</label>
+                <input type="text" id="apiUrl" placeholder="https://your-worker.your-subdomain.workers.dev">
+                <div class="help-text">请输入您部署的Cloudflare Worker的完整URL地址</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="authToken">🔐 认证Token</label>
+                <input type="password" id="authToken" placeholder="输入您的认证Token">
+                <div class="help-text">用于验证身份的安全令牌，请妥善保管</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="encryptionPassword">🔒 加密密码 (可选)</label>
+                <input type="password" id="encryptionPassword" placeholder="设置数据加密密码，留空则不加密">
+                <div class="help-text">设置后，您的书签数据将在上传前加密，提高安全性</div>
+            </div>
+            
+            <div class="button-group">
+                <button type="button" id="saveBtn" class="btn-primary">💾 保存设置</button>
+                <button type="button" id="testBtn" class="btn-secondary">🔗 测试连接</button>
+            </div>
+        </form>
+        
+        <div id="message" class="message"></div>
+        
+        <div class="help-section">
+            <h3>📋 配置说明</h3>
+            <p><strong>API地址：</strong>您的Cloudflare Worker部署地址，格式如：<code>https://worker-name.subdomain.workers.dev</code></p>
+            <p><strong>认证Token：</strong>在Cloudflare Worker环境变量中设置的<code>AUTH_TOKEN</code>值</p>
+            <p><strong>GitHub配置：</strong>确保Worker中已正确配置<code>GITHUB_TOKEN</code>、<code>GITHUB_OWNER</code>和<code>GITHUB_REPO</code></p>
+        </div>
     </div>
-    
-    <div class="form-group">
-        <label for="authToken">认证Token</label>
-        <input type="text" id="authToken" placeholder="用于验证请求的Token">
-    </div>
-    
-    <button id="saveBtn">保存设置</button>
-    <div class="message" id="message"></div>
     
     <script src="options.js"></script>
 </body>

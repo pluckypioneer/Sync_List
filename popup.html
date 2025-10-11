@@ -5,73 +5,451 @@
 </head>
     <style>
         body {
-            width: 300px;
-            padding: 15px;
-            font-family: Arial, sans-serif;
+            width: 320px;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            margin: 0;
         }
         .container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
             text-align: center;
         }
-        button {
-            padding: 10px 20px;
-            margin: 10px 5px;
-            cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 14px;
-            transition: background-color 0.3s;
+        .header {
+            margin-bottom: 20px;
         }
-        button:hover {
-            background-color: #45a049;
+        .header h3 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .header .subtitle {
+            color: #7f8c8d;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        button#uploadBtn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+        button#uploadBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
         }
         button#downloadBtn {
-            background-color: #2196F3;
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
         }
-        button#downloadBtn:hover {
-            background-color: #0b7dda;
+        button#downloadBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+        }
+        .loading-spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background-color: #ecf0f1;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 10px 0;
+            display: none;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: progress-animation 2s ease-in-out infinite;
+        }
+        @keyframes progress-animation {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
         .message {
             margin-top: 15px;
-            padding: 10px;
-            border-radius: 4px;
+            padding: 12px;
+            border-radius: 8px;
             display: none;
+            font-size: 13px;
+            line-height: 1.4;
         }
         .success {
-            background-color: #dff0d8;
-            color: #3c763d;
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
             display: block;
         }
         .error {
-            background-color: #f2dede;
-            color: #a94442;
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
             display: block;
         }
         .info {
-            background-color: #d9edf7;
-            color: #31708f;
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
             display: block;
         }
+        .footer {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
         .settings-link {
-            margin-top: 15px;
-            color: #2196F3;
+            color: #3498db;
             cursor: pointer;
             font-size: 12px;
+            text-decoration: none;
+            transition: color 0.3s ease;
         }
         .settings-link:hover {
+            color: #2980b9;
             text-decoration: underline;
+        }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            font-size: 11px;
+            color: #7f8c8d;
+        }
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .status-connected {
+            background-color: #27ae60;
+        }
+        .status-disconnected {
+            background-color: #e74c3c;
+        }
+        .backup-info {
+            font-size: 11px;
+            color: #95a5a6;
+            margin-top: 8px;
+        }
+        .backup-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .backup-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-backup, .btn-restore {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-backup {
+            background: linear-gradient(135deg, #17a2b8, #138496);
+            color: white;
+        }
+        .btn-backup:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(23, 162, 184, 0.3);
+        }
+        .btn-restore {
+            background: linear-gradient(135deg, #6f42c1, #5a32a3);
+            color: white;
+        }
+        .btn-restore:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(111, 66, 193, 0.3);
+        }
+        
+        /* 日志部分样式 */
+        .logs-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .logs-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .btn-logs, .btn-clear {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-logs {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+        
+        .btn-logs:hover {
+            background: linear-gradient(135deg, #2980b9, #3498db);
+            transform: translateY(-1px);
+        }
+        
+        .btn-clear {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+        
+        .btn-clear:hover {
+            background: linear-gradient(135deg, #c0392b, #e74c3c);
+            transform: translateY(-1px);
+        }
+        
+        /* 日志模态框样式 */
+        .logs-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logs-modal.show {
+            display: flex;
+        }
+        
+        .logs-content {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            border-radius: 12px;
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80%;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .logs-title {
+            color: #ecf0f1;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .logs-close {
+            background: none;
+            border: none;
+            color: #ecf0f1;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.3s ease;
+        }
+        
+        .logs-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .logs-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        .log-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-left: 4px solid;
+        }
+        
+        .log-item.success {
+            border-left-color: #27ae60;
+        }
+        
+        .log-item.error {
+            border-left-color: #e74c3c;
+        }
+        
+        .log-time {
+            color: #bdc3c7;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+        
+        .log-action {
+            color: #3498db;
+            font-weight: 500;
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+        
+        .log-message {
+            color: #ecf0f1;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .logs-empty {
+            text-align: center;
+            color: #7f8c8d;
+            padding: 40px 20px;
+            font-style: italic;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h3>GitHub书签同步</h3>
-        <button id="uploadBtn">上传到GitHub</button>
-        <button id="downloadBtn">从GitHub下载</button>
-        <div class="message" id="message"></div>
-        <div class="settings-link" id="settingsLink">设置</div>
+        <div class="header">
+            <h3>GitHub书签同步</h3>
+            <div class="subtitle">安全便捷的书签云同步</div>
+        </div>
+        
+        <div class="button-group">
+            <button id="uploadBtn">
+                <span class="loading-spinner" id="uploadSpinner"></span>
+                <span id="uploadText">📤 上传书签</span>
+            </button>
+            <button id="downloadBtn">
+                <span class="loading-spinner" id="downloadSpinner"></span>
+                <span id="downloadText">📥 下载书签</span>
+            </button>
+        </div>
+        
+        <div class="backup-section">
+            <div class="section-title">本地备份</div>
+            <div class="backup-buttons">
+                <button id="backupBtn" class="btn-backup">
+                    <span class="loading-spinner" id="backupSpinner"></span>
+                    <span id="backupText">💾 创建备份</span>
+                </button>
+                <button id="restoreBtn" class="btn-restore">
+                    <span class="loading-spinner" id="restoreSpinner"></span>
+                    <span id="restoreText">📂 恢复备份</span>
+                </button>
+            </div>
+            <input type="file" id="fileInput" accept=".json" style="display: none;">
+        </div>
+        
+        <div class="logs-section">
+            <div class="section-title">📋 同步日志</div>
+            <div class="logs-buttons">
+                <button id="viewLogsBtn" class="btn-logs">📋 查看日志</button>
+                <button id="clearLogsBtn" class="btn-clear">🗑️ 清空日志</button>
+            </div>
+        </div>
+        
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <div id="message" class="message"></div>
+        
+        <div class="footer">
+            <a class="settings-link" id="settingsLink">⚙️ 设置</a>
+            <div class="status-indicator" id="statusIndicator">
+                <div class="status-dot status-disconnected" id="statusDot"></div>
+                <span id="statusText">未连接</span>
+            </div>
+        </div>
+        
+        <div class="backup-info" id="backupInfo">
+            上次同步: 从未
+        </div>
     </div>
+    
+    <!-- 日志模态框 -->
+    <div id="logsModal" class="logs-modal">
+        <div class="logs-content">
+            <div class="logs-header">
+                <div class="logs-title">📋 同步日志</div>
+                <button id="logsCloseBtn" class="logs-close">×</button>
+            </div>
+            <div id="logsList" class="logs-list">
+                <div class="logs-empty">暂无日志记录</div>
+            </div>
+        </div>
+    </div>
+    
     <script src="popup.js"></script>
 </body>
 </html>
